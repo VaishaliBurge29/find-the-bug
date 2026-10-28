@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My account · BugHunt Shop</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="account">
+  <header id="site-header"></header>
+  <main>
+    <div id="account"><div class="spinner" role="status" aria-label="Loading"></div></div>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/js/common.js"></script>
+  <script>
+    function formatDate(iso) {
+      const d = new Date(iso);
+      return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth()).padStart(2, '0')}.${d.getFullYear()}`;
+    }
+
+    async function load() {
+      if (!storageGet('shopToken', null)) { location.href = '/login.html'; return; }
+      const res = await api('/me');
+      if (!res.ok) { location.href = '/login.html'; return; }
+      const me = res.data;
+      const el = document.getElementById('account');
+      el.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <h1>Hello, ${escapeHtml(me.name)} 👋</h1>
+          <button type="button" class="btn-secondary" id="logout">Log out</button>
+        </div>
+        <div class="card" style="margin-bottom:16px"><b>Email:</b> ${escapeHtml(me.email)}</div>
+        <div class="card table-wrap">
+          <h2>Your orders</h2>
+          ${me.orders.length ? `
+            <table>
+              <thead><tr><th>Order</th><th>Date</th><th>Items</th><th>Total</th><th><span class="hidden">Details</span></th></tr></thead>
+              <tbody>${me.orders.map((o) => `
+                <tr><td>#${o.id}</td><td>${formatDate(o.createdAt)}</td><td>${o.itemCount}</td><td>${formatEUR(o.total)}</td>
+                <td><a href="/order.html?id=${o.id}">View</a></td></tr>`).join('')}
+              </tbody>
+            </table>` : '<p>You have no orders yet.</p>'}
+        </div>`;
+
+      document.getElementById('logout').addEventListener('click', () => {
+        storageRemove('shopUser');
+        toast('You have been logged out');
+        setTimeout(() => { location.href = '/'; }, 600);
+      });
+    }
+    load();
+  </script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Order details · BugHunt Shop</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="account">
+  <header id="site-header"></header>
+  <main>
+    <p><a href="/account.html">← My account</a></p>
+    <div class="card" id="order" style="max-width:640px"><div class="spinner" role="status" aria-label="Loading"></div></div>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/js/common.js"></script>
+  <script>
+    (async () => {
+      const el = document.getElementById('order');
+      const res = await api('/orders/' + encodeURIComponent(qs('id')));
+      if (res.status === 401) { location.href = '/login.html'; return; }
+      if (!res.ok) { el.innerHTML = '<h1>Order not found</h1>'; return; }
+      const o = res.data;
+      const c = o.customer;
+      el.innerHTML = `
+        <h1>Order #${o.id}</h1>
+        <p><b>${escapeHtml(c.name)}</b><br>${escapeHtml(c.street)}<br>${escapeHtml(c.postalCode)} ${escapeHtml(c.city)}<br>${escapeHtml(c.email)}</p>
+        <div class="totals">
+          ${o.items.map((i) => `<div><span>${i.qty} × ${escapeHtml(i.name)}</span><span>${formatEUR(i.price * i.qty)}</span></div>`).join('')}
+          <div class="grand"><span>Total</span><span>${formatEUR(o.total)}</span></div>
+        </div>
+        <p class="help">Card ending in ${escapeHtml(o.cardLast4)}</p>`;
+    })();
+  </script>
+</body>
+</html>

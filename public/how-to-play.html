@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How to play · BugHunt Shop</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="home">
+  <header id="site-header"></header>
+  <main style="max-width:780px">
+    <h1>🐞 How to play</h1>
+    <p>BugHunt Shop looks like a normal online shop — but it contains <b>41 deliberately planted bugs</b>. Your job: find them like a professional tester, report them, and learn why each one happens.</p>
+
+    <div class="card" style="margin:16px 0">
+      <h2>1. Join</h2>
+      <p>Click <b>🐞 Bug Hunt</b> in the bottom-right corner and choose a nickname.</p>
+      <h2>2. Explore & test</h2>
+      <p>Use the shop like a customer — then like a tester. Try boundaries, invalid input, odd sequences, the keyboard, DevTools and API tools like Postman or Hoppscotch.</p>
+      <h2>3. Report</h2>
+      <p>Pick the <b>page</b>, <b>feature</b> and <b>category</b>, then describe what happened (steps, expected vs. actual). A clear report matters — just like in real life.</p>
+      <h2>4. Learn</h2>
+      <p>Each confirmed bug shows <b>why it happens</b>, <b>how to prevent it</b> and the <b>ISTQB test technique</b> that finds it.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h2>Scoring</h2>
+      <table>
+        <tbody>
+          <tr><td>Easy bug</td><td><b>+10</b></td></tr>
+          <tr><td>Medium bug</td><td><b>+20</b></td></tr>
+          <tr><td>Hard bug</td><td><b>+30</b></td></tr>
+          <tr><td>Hint</td><td><b>−5</b></td></tr>
+          <tr><td>Wrong report</td><td><b>−2</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h2>Bug categories</h2>
+      <p id="cats" class="help">Loading…</p>
+      <h2>Techniques that will help</h2>
+      <ul>
+        <li><b>Boundary value analysis</b> — test min−1, min, max, max+1</li>
+        <li><b>Equivalence partitioning</b> — one value from each valid and invalid group</li>
+        <li><b>Decision tables</b> — combinations of conditions (e.g. coupon valid/expired × first/repeat use)</li>
+        <li><b>State transition testing</b> — logged in/out, in stock/out of stock, applied/not applied</li>
+        <li><b>Error guessing</b> — what usually goes wrong? (double clicks, HTML in inputs, changed IDs)</li>
+        <li><b>Checklist-based testing</b> — accessibility (WCAG), security (OWASP), formatting</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Good to know</h2>
+      <ul>
+        <li>🧪 Demo login: <b>anna@example.com</b> / <b>Password123</b></li>
+        <li>💳 Never use a real card. Use <b>4111 1111 1111 1111</b>.</li>
+        <li>🔒 Data you create (accounts, orders, reviews) is only visible to you, so security experiments can't affect other players.</li>
+        <li>🙈 Don't read <code>server/bugs.js</code> in the source code — it's the answer key!</li>
+      </ul>
+      <a class="btn" href="/">Start hunting →</a>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/js/common.js"></script>
+  <script>
+    api('/hunt/meta').then(({ data }) => {
+      document.getElementById('cats').textContent = data.categories.map((c) => `${c} (${data.byCategory[c]})`).join(' · ');
+    });
+  </script>
+</body>
+</html>

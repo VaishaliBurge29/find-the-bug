@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login · BugHunt Shop</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="login">
+  <header id="site-header"></header>
+  <main>
+    <div class="card" style="max-width:440px;margin:0 auto">
+      <h1>Login</h1>
+      <form class="form" id="login-form">
+        <label>Email <input name="email" type="email" required autocomplete="username"></label>
+        <label>Password <input name="password" type="password" required autocomplete="current-password"></label>
+        <div id="msg" role="alert"></div>
+        <button type="submit">Login</button>
+      </form>
+      <p class="help">No account yet? <a href="/register.html">Register</a></p>
+      <p class="notice notice-info">🧪 Demo account: <b>anna@example.com</b> / <b>Password123</b></p>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/js/common.js"></script>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const res = await api('/login', { method: 'POST', body: { email: f.email.value, password: f.password.value } });
+      const msg = document.getElementById('msg');
+      if (!res.ok) { msg.innerHTML = `<div class="notice notice-err">${escapeHtml(res.data.error)}</div>`; return; }
+      storageSet('shopToken', res.data.token);
+      storageSet('shopUser', res.data.name);
+      location.href = '/account.html';
+    });
+  </script>
+</body>
+</html>

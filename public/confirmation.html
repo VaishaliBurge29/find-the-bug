@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Order confirmed · BugHunt Shop</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="checkout">
+  <header id="site-header"></header>
+  <main>
+    <div class="card" id="confirm" style="max-width:560px;margin:0 auto"></div>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/js/common.js"></script>
+  <script>
+    let order = null;
+    try { order = JSON.parse(sessionStorage.getItem('lastOrder')); } catch { /* ignore */ }
+    const el = document.getElementById('confirm');
+    if (!order || String(order.id) !== qs('order')) {
+      el.innerHTML = '<h1>Order not found</h1><p>We could not find this order in your session.</p><a class="btn" href="/">Back to shop</a>';
+    } else {
+      el.innerHTML = `
+        <h1>Thank you! 🎉</h1>
+        <p>Your order <b>#${order.id}</b> has been placed.</p>
+        <div class="totals">
+          ${order.items.map((i) => `<div><span>${i.qty} × ${escapeHtml(i.name)}</span><span>${formatEUR(i.price * i.qty)}</span></div>`).join('')}
+          <div><span>Shipping</span><span>${order.shipping ? formatEUR(order.shipping) : 'Free'}</span></div>
+          <div class="grand"><span>Total paid</span><span>${formatEUR(order.total)}</span></div>
+        </div>
+        <p class="help">Paid with card ending in ${escapeHtml(order.cardLast4)}. A confirmation was sent to ${escapeHtml(order.customer.email)}.</p>
+        <a class="btn" href="/">Continue shopping</a>`;
+    }
+  </script>
+</body>
+</html>

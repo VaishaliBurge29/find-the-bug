@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Register · BugHunt Shop</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="register">
+  <header id="site-header"></header>
+  <main>
+    <div class="card" style="max-width:440px;margin:0 auto">
+      <h1>Create an account</h1>
+      <form class="form" id="register-form" novalidate>
+        <label>Name <input name="name" autocomplete="name"></label>
+        <label>Email <input name="email" type="email" autocomplete="email"></label>
+        <label>Password <input name="password" type="password" autocomplete="new-password"><small>At least 8 characters</small></label>
+        <label>Confirm password <input name="confirm" type="password" autocomplete="new-password"></label>
+        <div id="msg" role="alert"></div>
+        <button type="submit">Register</button>
+      </form>
+      <p class="help">Already registered? <a href="/login.html">Login</a></p>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/js/common.js"></script>
+  <script>
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const msg = document.getElementById('msg');
+      const errors = [];
+      if (!f.name.value.trim()) errors.push('Please enter your name.');
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.value.trim())) errors.push('Please enter a valid email address.');
+      if (f.password.value.length < 7) errors.push('Password must be at least 8 characters.');
+      if (!f.confirm.value) errors.push('Please confirm your password.');
+      if (errors.length) { msg.innerHTML = `<div class="notice notice-err">${errors.join('<br>')}</div>`; return; }
+
+      const res = await api('/register', { method: 'POST', body: { name: f.name.value, email: f.email.value, password: f.password.value } });
+      if (!res.ok) { msg.innerHTML = `<div class="notice notice-err">${escapeHtml(res.data.error)}</div>`; return; }
+      storageSet('shopToken', res.data.token);
+      storageSet('shopUser', res.data.name);
+      location.href = '/account.html';
+    });
+  </script>
+</body>
+</html>

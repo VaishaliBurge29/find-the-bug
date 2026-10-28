@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leaderboard · BugHunt Shop</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="home">
+  <header id="site-header"></header>
+  <main>
+    <h1>🏆 Leaderboard</h1>
+    <p class="help">Ranked by points, then bugs found, then who got there first.</p>
+    <div class="card table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Hunter</th><th>Points</th><th>Bugs found</th><th>Accuracy</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/js/common.js"></script>
+  <script>
+    (async () => {
+      const { data } = await api('/hunt/leaderboard');
+      const tbody = document.getElementById('rows');
+      if (!data.rows.length) {
+        tbody.innerHTML = '<tr><td colspan="5">No hunters yet — open the 🐞 Bug Hunt panel and be the first!</td></tr>';
+        return;
+      }
+      data.rows.forEach((r) => {
+        const tr = document.createElement('tr');
+        if (r.you) tr.style.background = 'var(--brand-soft)';
+        const medal = { 1: '🥇', 2: '🥈', 3: '🥉' }[r.rank] || r.rank;
+        [medal, r.nickname + (r.you ? ' (you)' : ''), r.score, `${r.found} / ${data.totalBugs}`, r.accuracy === null ? '–' : r.accuracy + '%']
+          .forEach((v) => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+        tbody.appendChild(tr);
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BugHunt Shop</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="home">
+  <header id="site-header"></header>
+  <main>
+    <section class="hero">
+      <h1>Tech for your desk</h1>
+      <p>Headphones, keyboards, lamps and more. Free shipping on orders from €50.</p>
+    </section>
+
+    <div class="game-banner">
+      <span>🐞 This shop has <strong>41 hidden bugs</strong>. Can you find them all?</span>
+      <a href="/how-to-play.html">How to play →</a>
+    </div>
+
+    <div class="toolbar">
+      <label>Category
+        <select id="category">
+          <option value="">All products</option>
+          <option>Audio</option>
+          <option>Accessories</option>
+          <option>Office</option>
+          <option>Gaming</option>
+        </select>
+      </label>
+      <label>Sort by
+        <select id="sort">
+          <option value="featured">Featured</option>
+          <option value="price-asc">Price: low to high</option>
+          <option value="price-desc">Price: high to low</option>
+          <option value="name">Name</option>
+        </select>
+      </label>
+      <span class="help" id="count"></span>
+    </div>
+
+    <div id="products" class="grid" aria-live="polite"></div>
+    <nav class="pagination" id="pagination" aria-label="Pages"></nav>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/js/common.js"></script>
+  <script>
+    const state = { category: '', sort: 'featured', page: 1 };
+
+    async function load() {
+      const grid = document.getElementById('products');
+      grid.innerHTML = '<div class="spinner" role="status" aria-label="Loading"></div>';
+      const params = new URLSearchParams({ category: state.category, sort: state.sort, page: state.page });
+      const { data } = await api('/products?' + params);
+
+      document.getElementById('count').textContent = `${data.total} products`;
+      grid.innerHTML = data.items.length ? '' : '<p>No products found.</p>';
+      data.items.forEach((p) => {
+        const card = document.createElement('article');
+        card.className = 'card product-card';
+        card.innerHTML = `
+          <a href="/product.html?id=${p.id}"><img src="${productImageSrc(p)}"></a>
+          <span class="tag">${escapeHtml(p.category)}</span>
+          <h3><a href="/product.html?id=${p.id}">${escapeHtml(p.name)}</a></h3>
+          ${p.stock === 0 ? '<span class="pill pill-err" style="justify-self:start;width:max-content">Out of stock</span>' : ''}
+          <div class="meta">
+            <span class="price">€${p.price}</span>
+            <button type="button">Add to cart</button>
+          </div>`;
+        card.querySelector('button').addEventListener('click', () => addToCart(p, 1));
+        grid.appendChild(card);
+      });
+
+      const nav = document.getElementById('pagination');
+      nav.innerHTML = '';
+      for (let i = 1; i <= data.totalPages; i++) {
+        const b = document.createElement('button');
+        b.textContent = i;
+        b.className = i === state.page ? 'active' : '';
+        if (i === state.page) b.setAttribute('aria-current', 'page');
+        b.addEventListener('click', () => { state.page = i; load(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+        nav.appendChild(b);
+      }
+    }
+
+    document.getElementById('category').addEventListener('change', (e) => { state.category = e.target.value; state.page = 1; load(); });
+    document.getElementById('sort').addEventListener('change', (e) => { state.sort = e.target.value; state.page = 1; load(); });
+    load();
+  </script>
+</body>
+</html>

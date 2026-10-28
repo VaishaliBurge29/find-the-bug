@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout · BugHunt Shop</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="checkout">
+  <header id="site-header"></header>
+  <main>
+    <h1>Checkout</h1>
+    <div id="empty" class="card hidden"><p>Your cart is empty — there is nothing to check out.</p><a class="btn" href="/">Go shopping</a></div>
+
+    <div id="checkout" class="cart-layout">
+      <form class="card form" id="checkout-form" novalidate style="max-width:none">
+        <h2>Delivery address</h2>
+        <label>Full name * <input name="name" autocomplete="name"></label>
+        <label>Email * <input name="email" autocomplete="email"></label>
+        <label>Street and house number * <input name="street" autocomplete="street-address"></label>
+        <div class="row">
+          <label>Postal code (PLZ) * <input name="postalCode" autocomplete="postal-code"><small>5 digits</small></label>
+          <label>City * <input name="city" autocomplete="address-level2"></label>
+        </div>
+        <h2 style="margin-top:8px">Payment</h2>
+        <p class="notice notice-info">🧪 Test shop — never use a real card. Try <b>4111 1111 1111 1111</b>.</p>
+        <label>Card number * <input name="cardNumber" inputmode="numeric" autocomplete="off"></label>
+        <div class="row">
+          <label>Expiry (MM/YY) * <input name="expiry" placeholder="MM/YY" autocomplete="off"></label>
+          <label>CVC * <input name="cvc" inputmode="numeric" autocomplete="off"></label>
+        </div>
+        <div id="errors" role="alert"></div>
+        <button type="submit" id="place-order">Place order</button>
+      </form>
+
+      <div class="card">
+        <h2>Order summary</h2>
+        <div id="summary"></div>
+      </div>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/js/common.js"></script>
+  <script>
+    const cart = getCart();
+    if (!cart.length) {
+      document.getElementById('empty').classList.remove('hidden');
+      document.getElementById('checkout').classList.add('hidden');
+    }
+
+    const t = computeTotals();
+    document.getElementById('summary').innerHTML = `
+      <div class="totals">
+        ${cart.map((i) => `<div><span>${i.qty} × ${escapeHtml(i.name)}</span><span>${formatEUR(i.price * i.qty)}</span></div>`).join('')}
+        ${t.discount ? `<div><span>Discount (${getCoupons().map((c) => escapeHtml(c.code)).join(', ')})</span><span>−${formatEUR(t.discount)}</span></div>` : ''}
+        <div><span>Shipping</span><span>${t.shipping ? formatEUR(t.shipping) : 'Free'}</span></div>
+        <div class="grand"><span>Total</span><span>${formatEUR(t.total)}</span></div>
+      </div>`;
+
+    const REQUIRED = { name: 'Full name', email: 'Email', street: 'Street', postalCode: 'Postal code', cardNumber: 'Card number', expiry: 'Expiry', cvc: 'CVC' };
+
+    function validate(v) {
+      const errors = [];
+      Object.entries(REQUIRED).forEach(([key, label]) => { if (!v[key]) errors.push(`${label} is required.`); });
+      if (v.email && !/^[^@\s]+@/.test(v.email)) errors.push('Please enter a valid email address.');
+      if (v.postalCode && !/^[0-9A-Za-z]{4,5}$/.test(v.postalCode)) errors.push('Postal code must have 5 digits.');
+      const digits = v.cardNumber.replace(/\s/g, '');
+      if (v.cardNumber && !/^\d{13,19}$/.test(digits)) errors.push('Card number must have 13–19 digits.');
+      if (v.expiry && !/^(0[1-9]|1[0-2])\/\d{2}$/.test(v.expiry)) errors.push('Expiry must be in the format MM/YY.');
+      if (v.cvc && !/^\d{3,4}$/.test(v.cvc)) errors.push('CVC must have 3 or 4 digits.');
+      return errors;
+    }
+
+    document.getElementById('checkout-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const v = Object.fromEntries(['name', 'email', 'street', 'postalCode', 'city', 'cardNumber', 'expiry', 'cvc'].map((k) => [k, f[k].value.trim()]));
+      const errBox = document.getElementById('errors');
+      const errors = validate(v);
+      if (errors.length) {
+        errBox.innerHTML = `<div class="notice notice-err"><ul style="margin:0;padding-left:18px">${errors.map((x) => `<li>${x}</li>`).join('')}</ul></div>`;
+        return;
+      }
+      errBox.innerHTML = '';
+      const btn = document.getElementById('place-order');
+      btn.textContent = 'Processing payment…';
+
+      const cardNumber = v.cardNumber.replace(/\s/g, '');
+      const res = await api('/orders', {
+        method: 'POST',
+        body: {
+          items: getCart().map((i) => ({ id: i.id, qty: i.qty, price: i.price })),
+          coupons: getCoupons().map((c) => c.code),
+          customer: { name: v.name, email: v.email, street: v.street, postalCode: v.postalCode, city: v.city },
+          cardNumber,
+        },
+      });
+      btn.textContent = 'Place order';
+      if (!res.ok) { errBox.innerHTML = '<div class="notice notice-err">Payment failed. Please try again.</div>'; return; }
+
+      try { sessionStorage.setItem('lastOrder', JSON.stringify(res.data)); } catch { /* ignore */ }
+      saveCart([]);
+      storageSet('coupons', []);
+      location.href = `/confirmation.html?order=${res.data.id}&card=${cardNumber}`;
+    });
+  </script>
+</body>
+</html>

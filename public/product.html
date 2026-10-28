@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Product · BugHunt Shop</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="product">
+  <header id="site-header"></header>
+  <main>
+    <p><a href="/">← Back to shop</a></p>
+    <div id="product"><div class="spinner" role="status" aria-label="Loading"></div></div>
+
+    <section id="reviews-section" class="card hidden" style="margin-top:24px">
+      <h2>Customer reviews</h2>
+      <div id="reviews"></div>
+      <h2 style="margin-top:20px">Write a review</h2>
+      <form class="form" id="review-form">
+        <div class="row">
+          <label>Your name <input name="name" required maxlength="60"></label>
+          <label>Rating
+            <select name="rating">
+              <option value="5">★★★★★ (5)</option>
+              <option value="4">★★★★ (4)</option>
+              <option value="3">★★★ (3)</option>
+              <option value="2">★★ (2)</option>
+              <option value="1">★ (1)</option>
+            </select>
+          </label>
+        </div>
+        <label>Your review <textarea name="text" rows="3" required maxlength="1000"></textarea></label>
+        <button type="submit">Post review</button>
+      </form>
+    </section>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/js/common.js"></script>
+  <script>
+    const id = qs('id');
+
+    async function load() {
+      const box = document.getElementById('product');
+      const res = await api('/products/' + encodeURIComponent(id));
+      if (!res.ok) {
+        box.innerHTML = '<div class="notice notice-err">Something went wrong while loading this product.</div><pre></pre>';
+        box.querySelector('pre').textContent = JSON.stringify(res.data, null, 2);
+        return;
+      }
+      const p = res.data;
+      document.title = p.name + ' · BugHunt Shop';
+      box.innerHTML = `
+        <div class="product-detail">
+          <img src="${productImageSrc(p)}" alt="${escapeHtml(p.name)}">
+          <div>
+            <span class="tag">${escapeHtml(p.category)}</span>
+            <h1>${escapeHtml(p.name)}</h1>
+            <p>${p.rating !== null ? `<span class="stars">★</span> <b>${p.rating}</b> · ${p.reviewCount} review${p.reviewCount === 1 ? '' : 's'}` : 'No reviews yet'}</p>
+            <p class="price" style="font-size:1.6rem">${formatEUR(p.price)}</p>
+            <p>${escapeHtml(p.description)}</p>
+            <p>${p.stock > 0 ? `<span class="pill pill-ok">In stock</span>` : '<span class="pill pill-err">Out of stock</span>'}</p>
+            <form class="qty-row" id="add-form">
+              <label for="qty">Quantity</label>
+              <input id="qty" type="number" value="1">
+              <button type="submit" ${p.stock === 0 ? 'disabled' : ''}>Add to cart</button>
+              <button type="button" class="btn-secondary">♡ Wishlist</button>
+            </form>
+            <p class="help">Max. 10 per order</p>
+            <div id="add-msg" role="alert"></div>
+          </div>
+        </div>`;
+
+      document.getElementById('add-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const qty = parseInt(document.getElementById('qty').value, 10);
+        const msg = document.getElementById('add-msg');
+        msg.innerHTML = '';
+        if (Number.isNaN(qty)) { msg.innerHTML = '<div class="notice notice-err">Please enter a quantity.</div>'; return; }
+        if (qty >= 10) { msg.innerHTML = '<div class="notice notice-err">Sorry, the maximum is 10 per order.</div>'; return; }
+        addToCart(p, qty);
+      });
+
+      renderReviews(p.reviews);
+      document.getElementById('reviews-section').classList.remove('hidden');
+    }
+
+    function renderReviews(list) {
+      const el = document.getElementById('reviews');
+      if (!list.length) { el.innerHTML = '<p class="help">No reviews yet. Be the first!</p>'; return; }
+      el.innerHTML = list.map((r) => `
+        <div class="review">
+          <div><span class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span> <b>${escapeHtml(r.name)}</b></div>
+          <div>${r.text}</div>
+        </div>`).join('');
+    }
+
+    document.getElementById('review-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const res = await api(`/products/${encodeURIComponent(id)}/reviews`, { method: 'POST', body: { name: f.name.value, rating: f.rating.value, text: f.text.value } });
+      if (!res.ok) { toast(res.data.error); return; }
+      f.reset();
+      toast('Thanks for your review!');
+      load();
+    });
+
+    load();
+  </script>
+</body>
+</html>

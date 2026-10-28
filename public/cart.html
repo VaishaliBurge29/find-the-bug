@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cart · BugHunt Shop</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="cart">
+  <header id="site-header"></header>
+  <main>
+    <h1>Your cart</h1>
+    <div id="promo" class="notice notice-warn hidden" style="margin-bottom:16px"></div>
+    <div id="cart"></div>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/js/common.js"></script>
+  <script>
+    function render() {
+      const cart = getCart();
+      const el = document.getElementById('cart');
+      if (!cart.length) {
+        el.innerHTML = '<div class="card"><p>Your cart is empty.</p><a class="btn" href="/">Continue shopping</a></div>';
+        return;
+      }
+      el.innerHTML = `
+        <div class="cart-layout">
+          <div class="card table-wrap">
+            <table>
+              <thead><tr><th>Product</th><th>Price</th><th>Qty</th><th>Total</th><th><span class="hidden">Actions</span></th></tr></thead>
+              <tbody id="lines"></tbody>
+            </table>
+          </div>
+          <div class="card">
+            <h2>Summary</h2>
+            <form id="coupon-form" style="display:flex;gap:8px;margin-bottom:8px">
+              <input name="code" placeholder="Coupon code" aria-label="Coupon code">
+              <button type="submit" class="btn-secondary">Apply</button>
+            </form>
+            <div id="coupon-msg" role="alert"></div>
+            <div class="chips" id="chips" style="margin:8px 0"></div>
+            <div class="totals" id="totals"></div>
+            <p class="help">🚚 Free shipping on orders from €50</p>
+            <a class="btn" href="/checkout.html" style="width:100%">Go to checkout</a>
+          </div>
+        </div>`;
+
+      const tbody = document.getElementById('lines');
+      cart.forEach((item) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><div class="cart-item"><img src="${productImageSrc(item)}" alt=""><span>${escapeHtml(item.name)}</span></div></td>
+          <td>${formatEUR(item.price)}</td>
+          <td><input type="number" min="1" value="${item.qty}" style="width:72px" aria-label="Quantity for ${escapeHtml(item.name)}"></td>
+          <td class="line-total">${formatEUR(item.price * item.qty)}</td>
+          <td><button type="button" class="btn-link">Remove</button></td>`;
+
+        tr.querySelector('input').addEventListener('change', (e) => {
+          const qty = Math.max(1, parseInt(e.target.value, 10) || 1);
+          e.target.value = qty;
+          const all = getCart();
+          const line = all.find((i) => i.id === item.id);
+          line.qty = qty;
+          saveCart(all);
+          tr.querySelector('.line-total').textContent = formatEUR(line.price * qty);
+        });
+
+        tr.querySelector('button').addEventListener('click', () => {
+          const all = getCart();
+          const index = all.findIndex((i) => i.id = item.id);
+          all.splice(index, 1);
+          saveCart(all);
+          render();
+        });
+        tbody.appendChild(tr);
+      });
+
+      const coupons = getCoupons();
+      document.getElementById('chips').innerHTML = coupons.map((c) => `<span class="chip">${escapeHtml(c.code)} −${c.percent}%</span>`).join('') +
+        (coupons.length ? ' <button type="button" class="btn-link" id="clear-coupons" style="font-size:.8rem">clear</button>' : '');
+      const clear = document.getElementById('clear-coupons');
+      if (clear) clear.addEventListener('click', () => { storageSet('coupons', []); render(); });
+
+      const t = computeTotals();
+      document.getElementById('totals').innerHTML = `
+        <div><span>Subtotal</span><span>${formatEUR(t.subtotal)}</span></div>
+        ${t.discount ? `<div><span>Discount</span><span>−${formatEUR(t.discount)}</span></div>` : ''}
+        <div><span>Shipping</span><span>${t.shipping ? formatEUR(t.shipping) : 'Free'}</span></div>
+        <div class="grand"><span>Total</span><span>${formatEUR(t.total)}</span></div>
+        <div class="help"><span>incl. 19% VAT</span><span>€${t.vat}</span></div>`;
+
+      document.getElementById('coupon-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = e.target.code.value.trim();
+        const msg = document.getElementById('coupon-msg');
+        if (!code) return;
+        const res = await api('/coupons/' + encodeURIComponent(code));
+        if (!res.ok) { msg.innerHTML = `<div class="notice notice-err">${escapeHtml(res.data.error)}</div>`; return; }
+        const list = getCoupons();
+        list.push({ code: res.data.code, percent: res.data.percent });
+        storageSet('coupons', list);
+        render();
+        document.getElementById('coupon-msg').innerHTML = `<div class="notice notice-ok">Coupon ${escapeHtml(res.data.code)} applied: −${res.data.percent}%</div>`;
+      });
+    }
+
+    api('/promos').then(({ data }) => {
+      const flash = data[0];
+      const ended = new Date(flash.endedOn).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      const el = document.getElementById('promo');
+      el.textContent = `⚡ Our flash sale (code ${flash.code}, −${flash.percent}%) ended on ${ended}. Thanks to everyone who joined!`;
+      el.classList.remove('hidden');
+    });
+
+    render();
+  </script>
+</body>
+</html>

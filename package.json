@@ -1,0 +1,30 @@
+{
+  "name": "find-the-bug",
+  "version": "1.0.0",
+  "main": "server/index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test tests/"
+  },
+  "keywords": [
+    "qa",
+    "software-testing",
+    "istqb",
+    "bug-hunting",
+    "training",
+    "game"
+  ],
+  "author": "Vaishali Burge",
+  "license": "MIT",
+  "description": "A deliberately buggy web shop with 41 hidden bugs — a training game for software testers.",
+  "dependencies": {
+    "express": "^4.22.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
